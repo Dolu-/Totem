@@ -1,0 +1,110 @@
+/**
+ * Textes français (langue de référence : les autres langues doivent définir
+ * exactement les mêmes clés). `{nom}` = paramètre ; clés `.one` / `.other` = pluriel.
+ */
+export const fr = {
+  'app.title': 'Totem',
+  'app.tagline': '{ dolu.fr }',
+
+  'menu.play': 'Jouer',
+  'menu.resume': 'Reprendre',
+  'menu.highScores': 'Records',
+  'menu.settings': 'Réglages',
+  'menu.help': 'Aide',
+  'menu.back': 'Retour',
+  'menu.home': 'Accueil',
+
+  'hud.score': 'Score',
+  'hud.level': 'Niveau',
+  'hud.next.alignments.one': 'Encore {count} alignement',
+  'hud.next.alignments.other': 'Encore {count} alignements',
+  'hud.next.blocks.one': 'Encore {count} bloc',
+  'hud.next.blocks.other': 'Encore {count} blocs',
+  'hud.maxLevel': 'Niveau maximal',
+  'hud.levelUp': 'Niveau {level} !',
+  'hud.chain': '×{chain}',
+
+  'controls.left': 'Gauche',
+  'controls.right': 'Droite',
+  'controls.rotate': 'Permuter',
+  'controls.down': 'Descendre',
+  'controls.pause': 'Pause',
+
+  'pause.title': 'Pause',
+  'pause.resume': 'Reprendre',
+  'pause.stop': 'Arrêter la partie',
+
+  'gameOver.title': 'Partie terminée',
+  'gameOver.score': 'Score : {score}',
+  'gameOver.level': 'Niveau atteint : {level}',
+  'gameOver.newRecord': 'Nouveau record !',
+  'gameOver.nameLabel': 'Votre nom',
+  'gameOver.save': 'Enregistrer',
+  'gameOver.playAgain': 'Rejouer',
+
+  'scores.title': 'Records',
+  'scores.empty': 'Aucun record pour l’instant. À vous de jouer !',
+  'scores.rank': 'Rang',
+  'scores.name': 'Nom',
+  'scores.score': 'Score',
+  'scores.level': 'Niveau',
+  'scores.date': 'Date',
+  'scores.legacy': 'importé de l’ancienne version',
+  'scores.reset': 'Effacer les records',
+  'scores.resetConfirm': 'Effacer définitivement tous les records ?',
+
+  'settings.title': 'Réglages',
+  'settings.game': 'Partie',
+  'settings.lines': 'Lignes',
+  'settings.columns': 'Colonnes',
+  'settings.colors': 'Couleurs',
+  'settings.startLevel': 'Niveau de départ',
+  'settings.preset': 'Difficulté',
+  'settings.preset.easy': 'Facile',
+  'settings.preset.normal': 'Normal',
+  'settings.preset.hard': 'Difficile',
+  'settings.spawnMode': 'Apparition des pièces',
+  'settings.spawnMode.random': 'Colonne au hasard',
+  'settings.spawnMode.center': 'Colonne centrale',
+  'settings.display': 'Affichage',
+  'settings.language': 'Langue',
+  'settings.language.auto': 'Automatique',
+  'settings.language.fr': 'Français',
+  'settings.language.en': 'English',
+  'settings.touchButtons': 'Boutons de contrôle à l’écran',
+  'settings.colorSymbols': 'Symboles sur les blocs (daltonisme)',
+  'settings.defaults': 'Valeurs par défaut',
+  'settings.save': 'Enregistrer',
+  'settings.cancel': 'Annuler',
+
+  'help.title': 'Aide',
+  'help.goal':
+    'Des groupes de 3 blocs tombent. Alignez au moins 3 blocs de même couleur, horizontalement, verticalement ou en diagonale, pour les faire disparaître. Les blocs au-dessus tombent et peuvent former de nouveaux alignements : chaque réaction en chaîne multiplie les points.',
+  'help.levels':
+    'Le niveau augmente avec les alignements réalisés, et la chute accélère. Le score est multiplié par le niveau. Une réaction en chaîne ne compte qu’une fois pour le niveau : elle rapporte beaucoup de points sans accélérer le jeu.',
+  'help.keyboard': 'Clavier',
+  'help.keyboard.move': '← → : déplacer',
+  'help.keyboard.rotate': '↑ : permuter les couleurs',
+  'help.keyboard.drop': '↓ ou Espace (maintenu) : accélérer la descente',
+  'help.keyboard.pause': 'P ou Échap : pause',
+  'help.touch': 'Écran tactile et souris',
+  'help.touch.move':
+    'Glisser à gauche ou à droite : déplacer (un long glissement déplace de plusieurs colonnes)',
+  'help.touch.rotate': 'Toucher ou glisser vers le haut : permuter les couleurs',
+  'help.touch.drop': 'Glisser vers le bas : accélérer la descente',
+
+  'board.label': 'Plateau de jeu',
+  'hud.progress': 'Progression vers le niveau suivant',
+  'gameOver.home': 'Accueil',
+  'pause.hint': 'P ou Échap pour reprendre',
+  'scores.legacyMark': 'ancien',
+
+  'notice.storageUnavailable':
+    'Le stockage local est indisponible : réglages et records ne seront pas conservés.',
+  'notice.updateAvailable': 'Une nouvelle version est disponible.',
+  'notice.reload': 'Mettre à jour',
+  'notice.offlineReady': 'Le jeu est disponible hors ligne.',
+} as const;
+
+export type MessageKey = keyof typeof fr;
+export type Messages = Readonly<Record<MessageKey, string>>;

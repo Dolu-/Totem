@@ -1,0 +1,8 @@
+* text=auto eol=lf
+
+*.png binary
+*.ico binary
+*.sqlite binary
+
+# Version d'origine : aucune normalisation (jcolumns.css est en Windows-1252).
+legacy/** -text

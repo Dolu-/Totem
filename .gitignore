@@ -1,0 +1,18 @@
+node_modules/
+dist/
+dist-e2e/
+dev-dist/
+coverage/
+test-results/
+playwright-report/
+blob-report/
+playwright/.cache/
+*.log
+.vs/
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db
+
+# Version d'origine (référence locale, non publiée)
+legacy/

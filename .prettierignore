@@ -1,0 +1,10 @@
+legacy/
+dist/
+dist-e2e/
+dev-dist/
+coverage/
+test-results/
+playwright-report/
+package-lock.json
+# Documentation rédigée à la main (tableaux alignés volontairement).
+*.md

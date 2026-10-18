@@ -1,0 +1,49 @@
+{
+  "name": "totem",
+  "version": "1.0.0-dev",
+  "private": true,
+  "description": "Totem : des trios de blocs colorés tombent, alignez les couleurs. Jouable sur PC et mobile, sans installation.",
+  "license": "MIT",
+  "author": "Ludovic L.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "coverage": "vitest run --coverage",
+    "sim": "node tests/sim/run.ts",
+    "e2e": "playwright test --grep-invert @recette",
+    "e2e:update": "playwright test --grep-invert @recette --update-snapshots",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run lint && npm run format:check && npm run typecheck && npm run test",
+    "icons": "node scripts/generate-icons.ts",
+    "e2e:recette": "playwright test --grep @recette"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
+    "@eslint/js": "10.0.1",
+    "@playwright/test": "1.64.1",
+    "@types/node": "26.6.5",
+    "@vitest/coverage-v8": "5.0.5",
+    "eslint": "10.13.0",
+    "eslint-config-prettier": "10.1.8",
+    "fast-check": "4.10.2",
+    "globals": "17.13.0",
+    "happy-dom": "21.0.3",
+    "prettier": "3.9.10",
+    "typescript": "6.0.3",
+    "typescript-eslint": "8.71.2",
+    "vite": "8.3.4",
+    "vite-plugin-pwa": "2.0.0",
+    "vitest": "5.0.5",
+    "workbox-window": "7.4.1"
+  }
+}

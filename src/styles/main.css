@@ -1,0 +1,859 @@
+:root {
+  --bg: #0b1020;
+  --bg-2: #121a3d;
+  --panel: #141c3a;
+  --panel-2: #1c2650;
+  --panel-3: #26346a;
+  --border: rgba(148, 163, 184, 0.18);
+  --fg: #e8ecf8;
+  --muted: #9aa7c7;
+  --accent: #60a5fa;
+  --accent-2: #a78bfa;
+  --danger: #f87171;
+  --warning: #fbbf24;
+  --radius: 18px;
+  --safe-top: env(safe-area-inset-top);
+  --safe-right: env(safe-area-inset-right);
+  --safe-bottom: env(safe-area-inset-bottom);
+  --safe-left: env(safe-area-inset-left);
+
+  color-scheme: dark;
+  font-family:
+    system-ui,
+    -apple-system,
+    'Segoe UI',
+    Roboto,
+    sans-serif;
+  line-height: 1.45;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: radial-gradient(120% 80% at 50% 0%, var(--bg-2), var(--bg) 70%) fixed var(--bg);
+  color: var(--fg);
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+#app {
+  position: relative;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+/* ─── Couche de jeu : HUD + plateau + boutons ─────────────────────────────── */
+
+.game-layer {
+  position: absolute;
+  inset: 0;
+  /* Contexte d'empilement propre : le HUD reste sous les écrans superposés. */
+  z-index: 0;
+  display: grid;
+  /* Colonne bornée à l'écran : un contenu large (texte du HUD) ne l'élargit pas. */
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-areas: 'hud' 'board' 'controls';
+  padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
+}
+
+/*
+ * Zone qui accueille le plateau : le canvas prend la plus grande taille possible.
+ * Toute la zone capte les gestes (pas de défilement ni de zoom au doigt).
+ */
+.board-host {
+  grid-area: board;
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  display: grid;
+  place-items: center;
+  /* Peu de marge en haut : la barre de progression souligne le haut du plateau. */
+  padding: 6px 10px 10px;
+  overflow: hidden;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+
+canvas.board {
+  display: block;
+  touch-action: none;
+  border-radius: 4px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+}
+
+.controls {
+  grid-area: controls;
+}
+
+/* ─── HUD ─────────────────────────────────────────────────────────────────── */
+
+/*
+ * Ligne d'informations au-dessus du plateau, de sa largeur (--board-width, fournie par
+ * l'application) — PC, tablette, téléphone en portrait :
+ *   [compteur] niveau      ⏸      score [étoile]
+ *   ◀━━━━━━━━━━ barre de progression (soulignement) ━━━━━━━━━━
+ * Téléphone en paysage (faible hauteur) : colonne à gauche du plateau, voir plus bas.
+ */
+.hud {
+  grid-area: hud;
+  justify-self: center;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-areas:
+    'level pause score'
+    'bar bar bar';
+  align-items: center;
+  column-gap: 10px;
+  row-gap: 8px;
+  /* Largeur du plateau, mais jamais moins qu'un minimum lisible. */
+  width: max(var(--board-width, 100%), 15rem);
+  max-width: 100%;
+  padding: 10px 0 0;
+}
+
+.hud__stat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.hud__stat--level {
+  grid-area: level;
+  justify-self: start;
+}
+
+.hud__stat--score {
+  grid-area: score;
+  justify-self: end;
+}
+
+/* Niveau et score : même taille ; le niveau un peu moins contrasté. */
+.hud__value {
+  font-size: 1.9rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.hud__stat--level .hud__value {
+  color: #cdd5ea;
+}
+
+.hud__stat .icon {
+  flex: none;
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.hud__stat--score .icon {
+  fill: var(--warning);
+  stroke: var(--warning);
+  stroke-width: 1.5;
+}
+
+.hud__stat--level .icon {
+  color: var(--accent);
+}
+
+/* Pause : disque discret (34 px) dans une zone cliquable de 44 px. */
+.hud__pause {
+  grid-area: pause;
+  position: relative;
+  border: none;
+  background: transparent;
+}
+
+.hud__pause::before {
+  content: '';
+  position: absolute;
+  inset: 5px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--panel-2);
+}
+
+.hud__pause .icon {
+  position: relative;
+  width: 18px;
+  height: 18px;
+}
+
+@media (hover: hover) {
+  .hud__pause:hover {
+    background: transparent;
+  }
+
+  .hud__pause:hover::before {
+    background: var(--panel-3);
+  }
+}
+
+.hud__progress {
+  grid-area: bar;
+  min-width: 0;
+}
+
+/* La barre se remplit de la droite vers la gauche : elle « avance » vers le niveau. */
+.progress {
+  display: flex;
+  justify-content: flex-end;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--panel-2);
+  overflow: hidden;
+}
+
+.progress__fill {
+  /* --progress (0 à 1) est fourni par le HUD. */
+  width: calc(var(--progress, 0) * 100%);
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(270deg, var(--accent-2), var(--accent));
+  transition:
+    width 0.25s ease-out,
+    height 0.25s ease-out;
+}
+
+/*
+ * Téléphone en paysage (faible hauteur) : pour laisser toute la hauteur au plateau,
+ * les informations passent en colonne à sa gauche, sans cadre :
+ *   niveau (haut), pause (milieu), score (bas), et une barre verticale le long du
+ *   plateau qui se remplit du score vers le niveau.
+ */
+@media (orientation: landscape) and (max-height: 500px) {
+  .hud {
+    /* Hors de sa zone de grille : positionné par rapport à toute la couche de jeu. */
+    grid-area: auto;
+    position: absolute;
+    z-index: 1;
+    top: 50%;
+    /* Bord droit de la colonne calé à 12 px du bord gauche du plateau. */
+    right: calc(50% + var(--board-width, 300px) / 2 + 12px);
+    translate: 0 -50%;
+    grid-template-columns: auto 6px;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-areas:
+      'level bar'
+      'pause bar'
+      'score bar';
+    justify-items: end;
+    column-gap: 12px;
+    width: auto;
+    height: calc(var(--board-height, 300px) - 20px);
+    padding: 0;
+  }
+
+  .hud__stat--level,
+  .hud__stat--score {
+    justify-self: end;
+  }
+
+  .hud__pause {
+    align-self: center;
+  }
+
+  .hud__value {
+    font-size: 1.5rem;
+  }
+
+  .hud__stat .icon {
+    width: 1.2rem;
+    height: 1.2rem;
+  }
+
+  .hud__progress {
+    height: 100%;
+  }
+
+  .progress {
+    flex-direction: column;
+    width: 6px;
+    height: 100%;
+  }
+
+  .progress__fill {
+    width: 100%;
+    height: calc(var(--progress, 0) * 100%);
+    background: linear-gradient(0deg, var(--accent), var(--accent-2));
+  }
+}
+
+.toast {
+  position: absolute;
+  top: 30%;
+  left: 50%;
+  translate: -50% 0;
+  padding: 10px 22px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  color: #0b1020;
+  font-size: 1.3rem;
+  font-weight: 800;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.toast--show {
+  animation: toast 1.6s ease-out;
+}
+
+@keyframes toast {
+  0% {
+    opacity: 0;
+    transform: translateY(12px) scale(0.9);
+  }
+  15%,
+  70% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-16px);
+  }
+}
+
+/* ─── Boutons de contrôle à l'écran ───────────────────────────────────────── */
+
+.touch-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  padding: 6px 12px 12px;
+}
+
+.touch-button {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--panel-2);
+  color: var(--fg);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.touch-button:active {
+  background: var(--panel-3);
+}
+
+.touch-button .icon {
+  width: 28px;
+  height: 28px;
+}
+
+/* ─── Écrans (menus, pause, fin de partie) ───────────────────────────────── */
+
+.screen-layer {
+  position: absolute;
+  z-index: 1;
+  inset: 0;
+  pointer-events: none;
+}
+
+.screen {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  /* Colonne bornée à l'écran : une carte au contenu large ne déborde pas. */
+  grid-template-columns: minmax(0, 1fr);
+  place-items: center;
+  overflow-y: auto;
+  padding: calc(var(--safe-top) + 16px) calc(var(--safe-right) + 16px)
+    calc(var(--safe-bottom) + 16px) calc(var(--safe-left) + 16px);
+  pointer-events: auto;
+  animation: screen-in 0.18s ease-out;
+}
+
+@keyframes screen-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+.screen--overlay {
+  background: rgba(5, 8, 20, 0.72);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+}
+
+/* En pause, le plateau est masqué (pas de réflexion à l'arrêt, comme l'original). */
+.screen--pause {
+  background: var(--bg);
+}
+
+.card {
+  width: min(100%, 26rem);
+  padding: 28px 24px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--panel);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+  text-align: center;
+}
+
+.card--settings {
+  width: min(100%, 34rem);
+  text-align: left;
+}
+
+.card--text {
+  width: min(100%, 34rem);
+  text-align: left;
+}
+
+.card--home {
+  background: transparent;
+  border: none;
+  box-shadow: none;
+}
+
+.title {
+  margin: 0 0 4px;
+  overflow-wrap: break-word;
+  line-height: 1.1;
+  font-size: clamp(2.2rem, 10vw, 3.6rem);
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+/* Cartes superposées au jeu (pause, fin) : titre plus sobre, sur une ligne. */
+.screen--overlay .title {
+  font-size: clamp(1.9rem, 8vw, 2.6rem);
+}
+
+.title--small {
+  font-size: 1.7rem;
+  margin-bottom: 16px;
+}
+
+.tagline {
+  margin: 0 0 28px;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+h2 {
+  margin: 20px 0 6px;
+  font-size: 1.05rem;
+}
+
+.card--text p,
+.card--text li {
+  color: #cdd5ea;
+}
+
+.menu {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.actions > .btn {
+  flex: 1 1 auto;
+}
+
+.hint {
+  margin: 18px 0 0;
+  color: var(--muted);
+  font-size: 0.85rem;
+}
+
+/* Rappel des touches : inutile sur un écran tactile. */
+@media (pointer: coarse) {
+  .hint {
+    display: none;
+  }
+}
+
+.notice {
+  margin: 20px 0 0;
+  color: var(--warning);
+  font-size: 0.9rem;
+}
+
+.empty {
+  color: var(--muted);
+}
+
+.logo {
+  display: grid;
+  grid-template-columns: repeat(3, 34px);
+  gap: 8px;
+  justify-content: center;
+  margin: 0 auto 22px;
+}
+
+/* Paysage de faible hauteur (téléphone tourné) : logo et titre à gauche, menu à droite. */
+@media (orientation: landscape) and (max-height: 540px) {
+  .card--home {
+    display: grid;
+    grid-template-columns: auto minmax(14rem, 20rem);
+    grid-template-areas:
+      'logo menu'
+      'title menu'
+      'tagline menu';
+    align-items: center;
+    column-gap: 40px;
+    width: auto;
+    padding: 0;
+  }
+
+  .card--home .logo {
+    grid-area: logo;
+    grid-template-columns: repeat(3, 26px);
+    gap: 6px;
+    margin-bottom: 10px;
+  }
+
+  .card--home .logo__block {
+    width: 26px;
+    height: 26px;
+  }
+
+  .card--home .title {
+    grid-area: title;
+    font-size: 2.4rem;
+  }
+
+  .card--home .tagline {
+    grid-area: tagline;
+    margin: 0;
+  }
+
+  .card--home .menu {
+    grid-area: menu;
+    gap: 8px;
+    margin: 0;
+  }
+}
+
+.logo__block {
+  width: 34px;
+  height: 34px;
+  border-radius: 7px;
+  background: linear-gradient(135deg, var(--block-light), var(--block) 45%, var(--block-dark));
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.3),
+    0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+/* ─── Boutons ─────────────────────────────────────────────────────────────── */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 0 22px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--panel-2);
+  color: var(--fg);
+  font: inherit;
+  font-weight: 650;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    transform 0.1s;
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn--primary {
+  border-color: transparent;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  color: #0b1020;
+}
+
+.btn--danger {
+  /* Fond explicite (celui de la carte) : contraste mesurable sans ambiguïté. */
+  background: var(--panel);
+  color: var(--danger);
+}
+
+/* Survol uniquement avec une souris : sur écran tactile, l'effet resterait « collé » après un toucher. */
+@media (hover: hover) {
+  .btn:hover {
+    background: var(--panel-3);
+  }
+
+  .btn--primary:hover {
+    background: linear-gradient(90deg, #7db6fb, #b9a0fb);
+  }
+
+  /* Rouge plus clair sur fond survolé : contraste ≥ 4,5:1. */
+  .btn--danger:hover {
+    color: #fca5a5;
+  }
+}
+
+.btn--icon {
+  width: 44px;
+  min-height: 44px;
+  padding: 0;
+}
+
+.btn:focus-visible,
+.touch-button:focus-visible,
+input:focus-visible,
+select:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.icon {
+  width: 22px;
+  height: 22px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+/* ─── Formulaires ─────────────────────────────────────────────────────────── */
+
+fieldset {
+  margin: 0 0 18px;
+  padding: 0;
+  border: none;
+}
+
+legend {
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.field {
+  display: grid;
+  grid-template-columns: minmax(8rem, 11rem) 1fr 2rem;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+}
+
+.field--select {
+  grid-template-columns: minmax(8rem, 11rem) 1fr;
+}
+
+.field--check {
+  display: flex;
+  gap: 12px;
+}
+
+.field__value {
+  text-align: right;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+input[type='range'] {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+input[type='checkbox'] {
+  width: 22px;
+  height: 22px;
+  accent-color: var(--accent);
+}
+
+select,
+input[type='text'] {
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--panel-2);
+  color: var(--fg);
+  font: inherit;
+}
+
+@media (max-width: 420px) {
+  .field,
+  .field--select {
+    grid-template-columns: 1fr 2rem;
+    gap: 4px 12px;
+  }
+
+  .field > label {
+    grid-column: 1 / -1;
+  }
+
+  .field--select > select {
+    grid-column: 1 / -1;
+  }
+}
+
+.result {
+  margin: 4px 0;
+  font-size: 1.4rem;
+  font-weight: 800;
+}
+
+.result--small {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.record {
+  margin: 20px 0 8px;
+  text-align: left;
+}
+
+.record__title {
+  margin: 0 0 10px;
+  color: var(--warning);
+  font-weight: 800;
+  text-align: center;
+}
+
+.record__row {
+  display: flex;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+.record__row input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ─── Records ─────────────────────────────────────────────────────────────── */
+
+.scores {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.scores th,
+.scores td {
+  padding: 8px 6px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+
+.scores thead th {
+  color: var(--muted);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.scores .num {
+  text-align: right;
+}
+
+.scores tbody th {
+  font-weight: 600;
+}
+
+.scores .legacy {
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.scores tr.is-new {
+  background: rgba(96, 165, 250, 0.16);
+}
+
+@media (max-width: 380px) {
+  .scores .date {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ─── Bandeau d'information (hors ligne, mise à jour) ─────────────────────── */
+
+.notice-bar {
+  position: absolute;
+  z-index: 2;
+  left: 50%;
+  bottom: calc(var(--safe-bottom) + 16px);
+  translate: -50% 0;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: max-content;
+  max-width: calc(100% - 32px);
+  padding: 10px 12px 10px 18px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--panel-2);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  animation: screen-in 0.2s ease-out;
+}
+
+.notice-bar__text {
+  font-size: 0.92rem;
+}
+
+.btn--small {
+  min-height: 40px;
+  padding: 0 16px;
+}
