@@ -61,6 +61,8 @@ body {
 
 #app {
   position: relative;
+  /* Repli pour Safari < 15.4 (iOS 15.0 à 15.3), qui ignore `dvh`. */
+  height: 100vh;
   height: 100dvh;
   overflow: hidden;
 }

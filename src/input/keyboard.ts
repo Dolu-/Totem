@@ -105,7 +105,7 @@ export class KeyboardController {
     if (index >= 0) {
       this.#held.splice(index, 1);
       // On reprend la direction encore maintenue, sans pas immédiat supplémentaire.
-      const remaining = this.#held.at(-1);
+      const remaining = this.#held[this.#held.length - 1];
       const direction = remaining === undefined ? null : this.#directionOf(remaining);
       if (direction === null) this.#repeat.release();
       else this.#repeat.press(direction);
