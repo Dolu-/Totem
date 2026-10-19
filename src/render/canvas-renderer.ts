@@ -147,8 +147,19 @@ function roundRect(
   h: number,
   r: number,
 ): void {
+  const radius = Math.max(0, Math.min(r, w / 2, h / 2));
   ctx.beginPath();
-  ctx.roundRect(x, y, w, h, Math.min(r, w / 2, h / 2));
+  // `roundRect` n'existe qu'à partir de Safari 16 (iOS 15 : iPhone 6s, 7…) : tracé équivalent par arcs.
+  if (typeof ctx.roundRect === 'function') {
+    ctx.roundRect(x, y, w, h, radius);
+    return;
+  }
+  ctx.moveTo(x + radius, y);
+  ctx.arcTo(x + w, y, x + w, y + h, radius);
+  ctx.arcTo(x + w, y + h, x, y + h, radius);
+  ctx.arcTo(x, y + h, x, y, radius);
+  ctx.arcTo(x, y, x + w, y, radius);
+  ctx.closePath();
 }
 
 /**

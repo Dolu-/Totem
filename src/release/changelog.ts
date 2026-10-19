@@ -21,6 +21,17 @@ export interface Release {
 
 export const CHANGELOG: readonly Release[] = [
   {
+    version: '1.1.1',
+    date: '2026-10-19',
+    changes: [
+      {
+        kind: 'fix',
+        fr: 'Sur les iPhone restés sous iOS 15 (iPhone 6s, 7…), le bouton « Jouer » lance de nouveau la partie.',
+        en: 'On iPhones still running iOS 15 (iPhone 6s, 7…), the “Play” button starts the game again.',
+      },
+    ],
+  },
+  {
     version: '1.1.0',
     date: '2026-10-19',
     changes: [
