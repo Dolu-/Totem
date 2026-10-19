@@ -61,12 +61,14 @@ jobs:
           DRY_RUN: ${{ inputs.dry_run }}
         run: |
           # FTPS explicite obligatoire, certificat vérifié.
-          # .well-known (renouvellement AutoSSL), cgi-bin et .htaccess ne sont jamais supprimés.
+          # .well-known (renouvellement AutoSSL), cgi-bin, .htaccess, .user.ini et php.ini
+          # (configuration de l'hébergeur) ne sont jamais supprimés.
           # Les ressources partent d'abord ; index.html et sw.js en dernier, pour qu'aucun
           # visiteur ne reçoive une page qui référence des fichiers pas encore arrivés.
           MIRROR="mirror --reverse --delete --no-perms --parallel=2 --verbose"
           MIRROR="$MIRROR --exclude-glob .well-known/ --exclude-glob cgi-bin/ --exclude-glob .htaccess"
-          MIRROR="$MIRROR --exclude-glob .ftpquota --exclude-glob index.html --exclude-glob sw.js"
+          MIRROR="$MIRROR --exclude-glob .ftpquota --exclude-glob .user.ini --exclude-glob php.ini"
+          MIRROR="$MIRROR --exclude-glob index.html --exclude-glob sw.js"
 
           if [ "$DRY_RUN" = "true" ]; then
             echo "::notice::Essai à blanc : rien n'est modifié sur le serveur"
