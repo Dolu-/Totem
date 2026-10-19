@@ -158,16 +158,15 @@ test.describe('écran tactile (mobile)', () => {
     expect((await snapshot(page)).piece?.colors).toEqual([2, 0, 1]);
   });
 
-  test('geste vif vers le bas, par défaut : la descente s’arrête au relâchement', async ({
-    page,
-  }) => {
+  test('geste vif vers le bas, par défaut : la pièce suit le doigt', async ({ page }) => {
     await ready(page);
     const { x, y, cell } = await boardGeometry(page);
     await touchSwipe(page, { x, y }, { x, y: y + 3 * cell }, 120);
-    await advance(page, 300); // vitesse normale (1 case/s) : la pièce n'a quasi pas bougé
+    await advance(page, 300); // vitesse normale : la pièce a seulement suivi le doigt (4 cases)
     const snap = await snapshot(page);
     expect(snap.piecesPlaced).toBe(0);
-    expect(snap.piece?.y).toBeLessThan(6);
+    expect(snap.piece?.y).toBeGreaterThanOrEqual(7);
+    expect(snap.piece?.y).toBeLessThan(8);
   });
 
   test('geste vif vers le bas, réglage activé : la pièce descend jusqu’à se poser', async ({
@@ -188,7 +187,7 @@ test.describe('écran tactile (mobile)', () => {
     expect(snap.rows.slice(-3)).toEqual(['..2...', '..1...', '..0...']);
   });
 
-  test('doigt maintenu après un glissement vers le bas : descente rapide continue', async ({
+  test('doigt maintenu après un glissement vers le bas : la pièce ne s’emballe pas', async ({
     page,
   }) => {
     await ready(page);
@@ -215,7 +214,11 @@ test.describe('écran tactile (mobile)', () => {
       },
       { x, y, cell },
     );
-    await advanceUntil(page, (s) => s.piecesPlaced >= 2, 20, 3000);
+    await advance(page, 500); // pas d'accélération : seulement les 3 cases suivies + chute normale
+    const snap = await snapshot(page);
+    expect(snap.piecesPlaced).toBe(0);
+    expect(snap.piece?.y).toBeGreaterThanOrEqual(6);
+    expect(snap.piece?.y).toBeLessThan(7.5);
   });
 
   test('boutons à l’écran : ← et ⟳', async ({ page }) => {

@@ -15,7 +15,7 @@ function setup(flickToLock = false) {
   controller = new GestureController(element, sink, {
     cellSize: () => CELL,
     moveCells: 0.8,
-    swipeCells: 1,
+    swipeCells: 0.3,
     tapMaxPx: 10,
     tapMaxMs: 250,
     flickToLock: () => flickToLock,
@@ -121,34 +121,34 @@ describe('GestureController', () => {
     expect(sink.log).toEqual(['rotate']);
   });
 
-  it('glissement vers le bas maintenu : descente rapide jusqu’au relâchement', () => {
+  it('glissement vers le bas : la pièce suit le doigt, une case par largeur de case', () => {
     const { element, sink } = setup();
     pointer(element, 'pointerdown', 100, 100);
     clock += 100;
-    pointer(element, 'pointermove', 100, 150);
-    expect(sink.log).toEqual(['drop:on']);
+    pointer(element, 'pointermove', 100, 115); // 0,3 case passée : première case aussitôt
+    expect(sink.log).toEqual(['down']);
     clock += 600;
     pointer(element, 'pointermove', 100, 300);
     pointer(element, 'pointerup', 100, 300);
-    expect(sink.log).toEqual(['drop:on', 'drop:off']);
+    expect(sink.log).toEqual(Array<string>(6).fill('down'));
   });
 
-  it('geste vif vers le bas : la descente s’arrête au relâchement par défaut', () => {
+  it('geste vif vers le bas : suit le doigt, sans chute jusqu’à la pose par défaut', () => {
     const { element, sink } = setup();
     swipe(element, [100, 100], [100, 220], 150, 3);
-    expect(sink.log).toEqual(['drop:on', 'drop:off']);
+    expect(sink.log).toEqual(Array<string>(4).fill('down'));
   });
 
   it('geste vif vers le bas avec le réglage : la descente continue jusqu’à la pose', () => {
     const { element, sink } = setup(true);
     swipe(element, [100, 100], [100, 220], 150, 3);
-    expect(sink.log).toEqual(['drop:on', 'drop:off', 'drop:untilLock']);
+    expect(sink.log).toEqual([...Array<string>(4).fill('down'), 'drop:untilLock']);
   });
 
   it('glissement lent vers le bas avec le réglage : pas de chute jusqu’à la pose', () => {
     const { element, sink } = setup(true);
     swipe(element, [100, 100], [100, 220], 600, 6);
-    expect(sink.log).toEqual(['drop:on', 'drop:off']);
+    expect(sink.log).toEqual(Array<string>(4).fill('down'));
   });
 
   it('geste vif sans mouvement intermédiaire : la position finale compte', () => {
@@ -179,13 +179,13 @@ describe('GestureController', () => {
     expect(sink.log).toEqual(['rotate']);
   });
 
-  it('annulation (appel entrant, geste système) : la descente rapide s’arrête', () => {
+  it('annulation (appel entrant, geste système) : le geste n’a plus d’effet', () => {
     const { element, sink } = setup();
     pointer(element, 'pointerdown', 100, 100);
     pointer(element, 'pointermove', 100, 200);
     pointer(element, 'pointercancel', 100, 200);
     pointer(element, 'pointerup', 100, 200);
-    expect(sink.log).toEqual(['drop:on', 'drop:off']);
+    expect(sink.log).toEqual(Array<string>(3).fill('down'));
   });
 
   it('désactivé : ignore les gestes et interrompt le geste en cours', () => {
@@ -196,7 +196,7 @@ describe('GestureController', () => {
     pointer(element, 'pointerup', 100, 200);
     pointer(element, 'pointerdown', 100, 100);
     pointer(element, 'pointerup', 100, 100);
-    expect(sink.log).toEqual(['drop:on', 'drop:off']);
+    expect(sink.log).toEqual(Array<string>(3).fill('down'));
   });
 
   it('empêche le menu contextuel (appui long)', () => {

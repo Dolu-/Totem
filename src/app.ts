@@ -82,8 +82,11 @@ export class App {
       rotate: () => {
         this.#whenPlaying((g) => g.rotate());
       },
-      setSoftDrop: (active, immediate) => {
-        this.view.game?.setSoftDrop(active && this.#screen === 'playing', immediate);
+      setSoftDrop: (active) => {
+        this.view.game?.setSoftDrop(active && this.#screen === 'playing');
+      },
+      stepDown: () => {
+        this.#whenPlaying((g) => g.stepDown());
       },
       softDropUntilLock: () => {
         this.#whenPlaying((g) => {

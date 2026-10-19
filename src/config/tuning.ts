@@ -158,7 +158,7 @@ export const DEFAULT_TUNING: Tuning = deepFreeze({
     repeatDelayMs: 250,
     repeatIntervalMs: 150,
   },
-  gestures: { moveCells: 0.8, swipeCells: 0.4, tapMaxPx: 10, tapMaxMs: 250 },
+  gestures: { moveCells: 0.8, swipeCells: 0.3, tapMaxPx: 10, tapMaxMs: 250 },
 });
 
 export type PresetId = 'easy' | 'normal' | 'hard';

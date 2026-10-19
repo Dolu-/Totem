@@ -9,6 +9,7 @@ export function recordingSink(): ActionSink & { log: string[] } {
     moveRight: () => log.push('right'),
     rotate: () => log.push('rotate'),
     setSoftDrop: (active) => log.push(active ? 'drop:on' : 'drop:off'),
+    stepDown: () => log.push('down'),
     softDropUntilLock: () => log.push('drop:untilLock'),
     togglePause: () => log.push('pause'),
   };

@@ -188,14 +188,24 @@ export class Game {
   /**
    * Descente rapide maintenue : active tant que la commande est tenue, y compris pour
    * les pièces suivantes (touche ou doigt restés appuyés, comme dans l'original).
-   * Une pièce qui repose est verrouillée aussitôt. `immediate` (tactile) supprime la
-   * temporisation avant l'accélération : la pièce accompagne le doigt dès qu'il descend.
+   * Une pièce qui repose est verrouillée aussitôt.
    */
-  setSoftDrop(active: boolean, immediate = false): void {
-    if (active && !this.#dropping()) {
-      this.#softDropHeldMs = immediate ? this.#tuning.timing.softDropDelayMs : 0;
-    }
+  setSoftDrop(active: boolean): void {
+    if (active && !this.#dropping()) this.#softDropHeldMs = 0;
     this.#softDrop = active;
+  }
+
+  /**
+   * Descend la pièce d'une case, sans changer sa vitesse de chute (doigt qui glisse vers le bas :
+   * la pièce le suit, comme pour un déplacement latéral). Ne verrouille jamais ; s'arrête au repos.
+   */
+  stepDown(): boolean {
+    const piece = this.#piece;
+    if (!this.#canControl() || !piece) return false;
+    const restY = this.#restY(piece.x);
+    if (piece.y >= restY) return false;
+    piece.y = Math.min(restY, piece.y + 1);
+    return true;
   }
 
   /** Descente rapide ponctuelle (geste vif) : jusqu'à ce que la pièce courante se pose. */

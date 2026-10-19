@@ -4,9 +4,9 @@
  *   (la pièce suit le doigt, un long glissement déplace de plusieurs colonnes) ;
  * - glisser vers le haut : permuter (décidé au relâchement, comme 2048) ;
  * - toucher (tap) ou clic bref : permuter ;
- * - glisser vers le bas : descente rapide tant que le doigt reste posé (même pour
- *   les pièces suivantes), sans temporisation ; en option (`flickToLock`), un geste
- *   vif (relâché rapidement) la garde jusqu'à ce que la pièce courante se pose.
+ * - glisser vers le bas : la pièce suit le doigt, une case par largeur de case parcourue
+ *   (première case dès le seuil franchi), sans changer sa vitesse de chute ; en option
+ *   (`flickToLock`), un geste vif (relâché rapidement) la fait descendre jusqu'à la pose.
  * L'axe est verrouillé dès que le geste est reconnu : pas de diagonale ambiguë.
  */
 import { capturePointer, type ActionSink } from './actions.ts';
@@ -35,6 +35,8 @@ interface Track {
   readonly startTime: number;
   /** Abscisse de référence du dernier déplacement effectué. */
   anchorX: number;
+  /** Ordonnée de référence du dernier pas de descente (la première case part du seuil). */
+  anchorY: number;
   axis: Axis | null;
   dropping: boolean;
   swipedUp: boolean;
@@ -100,6 +102,7 @@ export class GestureController {
       startY: event.clientY,
       startTime: this.#now(),
       anchorX: event.clientX,
+      anchorY: event.clientY,
       axis: null,
       dropping: false,
       swipedUp: false,
@@ -117,6 +120,8 @@ export class GestureController {
     if (track.axis === null) {
       if (Math.max(Math.abs(dx), Math.abs(dy)) < lock) return;
       track.axis = Math.abs(dx) >= Math.abs(dy) ? 'horizontal' : 'vertical';
+      // Décalage pour que la première case descende dès `swipe`, puis une par `move`.
+      track.anchorY = track.startY + swipe - move;
     }
 
     if (track.axis === 'horizontal') {
@@ -128,9 +133,12 @@ export class GestureController {
         track.anchorX += direction * move;
         offset = event.clientX - track.anchorX;
       }
-    } else if (dy >= swipe && !track.dropping) {
+    } else if (dy >= swipe) {
       track.dropping = true;
-      this.#sink.setSoftDrop(true, true);
+      while (event.clientY - track.anchorY >= move) {
+        this.#sink.stepDown();
+        track.anchorY += move;
+      }
     } else if (dy <= -swipe) {
       track.swipedUp = true;
     }
@@ -150,10 +158,9 @@ export class GestureController {
       if (quick && distance <= this.#options.tapMaxPx) this.#sink.rotate();
     } else if (track.axis === 'vertical') {
       if (track.swipedUp && !track.dropping) this.#sink.rotate();
-      if (track.dropping) {
-        this.#sink.setSoftDrop(false);
-        // Geste vif vers le bas (si réglé) : la descente rapide continue jusqu'à la pose.
-        if (quick && this.#options.flickToLock?.() === true) this.#sink.softDropUntilLock();
+      // Geste vif vers le bas (si réglé) : la pièce descend jusqu'à la pose.
+      if (track.dropping && quick && this.#options.flickToLock?.() === true) {
+        this.#sink.softDropUntilLock();
       }
     }
   };
@@ -166,8 +173,6 @@ export class GestureController {
   };
 
   #cancel(): void {
-    const track = this.#track;
     this.#track = null;
-    if (track?.dropping) this.#sink.setSoftDrop(false);
   }
 }
