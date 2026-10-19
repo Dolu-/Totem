@@ -71,6 +71,7 @@ export const en: Messages = {
   'settings.language.en': 'English',
   'settings.touchButtons': 'On-screen control buttons',
   'settings.colorSymbols': 'Symbols on blocks (color blindness)',
+  'settings.flickToLock': 'Quick swipe down: drop the piece',
   'settings.defaults': 'Defaults',
   'settings.save': 'Save',
   'settings.cancel': 'Cancel',

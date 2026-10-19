@@ -23,6 +23,8 @@ export interface Settings {
   readonly touchButtons: boolean;
   /** Symboles sur les blocs, pour distinguer les couleurs sans les voir. */
   readonly colorSymbols: boolean;
+  /** Geste vif vers le bas : la pièce descend jusqu'à la pose (sinon la descente suit le doigt). */
+  readonly flickToLock: boolean;
 }
 
 /** Bornes des réglages numériques (reprises du legacy). */
@@ -43,6 +45,7 @@ export const DEFAULT_SETTINGS: Settings = Object.freeze({
   language: 'auto',
   touchButtons: false,
   colorSymbols: false,
+  flickToLock: false,
 });
 
 const PRESET_IDS: readonly PresetId[] = ['easy', 'normal', 'hard'];
@@ -86,6 +89,7 @@ export function sanitizeSettings(raw: unknown): Settings {
     language: oneOf<Language | 'auto'>(r['language'], [...LANGUAGES, 'auto'], d.language),
     touchButtons: bool(r['touchButtons'], d.touchButtons),
     colorSymbols: bool(r['colorSymbols'], d.colorSymbols),
+    flickToLock: bool(r['flickToLock'], d.flickToLock),
   };
 }
 

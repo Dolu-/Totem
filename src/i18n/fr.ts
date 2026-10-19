@@ -73,6 +73,7 @@ export const fr = {
   'settings.language.en': 'English',
   'settings.touchButtons': 'Boutons de contrôle à l’écran',
   'settings.colorSymbols': 'Symboles sur les blocs (daltonisme)',
+  'settings.flickToLock': 'Geste vif vers le bas : poser la pièce',
   'settings.defaults': 'Valeurs par défaut',
   'settings.save': 'Enregistrer',
   'settings.cancel': 'Annuler',

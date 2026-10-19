@@ -158,7 +158,27 @@ test.describe('écran tactile (mobile)', () => {
     expect((await snapshot(page)).piece?.colors).toEqual([2, 0, 1]);
   });
 
-  test('geste vif vers le bas : la pièce descend vite jusqu’à se poser', async ({ page }) => {
+  test('geste vif vers le bas, par défaut : la descente s’arrête au relâchement', async ({
+    page,
+  }) => {
+    await ready(page);
+    const { x, y, cell } = await boardGeometry(page);
+    await touchSwipe(page, { x, y }, { x, y: y + 3 * cell }, 120);
+    await advance(page, 300); // vitesse normale (1 case/s) : la pièce n'a quasi pas bougé
+    const snap = await snapshot(page);
+    expect(snap.piecesPlaced).toBe(0);
+    expect(snap.piece?.y).toBeLessThan(6);
+  });
+
+  test('geste vif vers le bas, réglage activé : la pièce descend jusqu’à se poser', async ({
+    page,
+  }) => {
+    await page.addInitScript(() => {
+      localStorage.setItem(
+        'totem:v1',
+        JSON.stringify({ version: 1, settings: { flickToLock: true }, legacyImported: true }),
+      );
+    });
     await ready(page);
     const { x, y, cell } = await boardGeometry(page);
     await touchSwipe(page, { x, y }, { x, y: y + 3 * cell }, 120);

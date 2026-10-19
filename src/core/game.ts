@@ -188,10 +188,13 @@ export class Game {
   /**
    * Descente rapide maintenue : active tant que la commande est tenue, y compris pour
    * les pièces suivantes (touche ou doigt restés appuyés, comme dans l'original).
-   * Une pièce qui repose est verrouillée aussitôt.
+   * Une pièce qui repose est verrouillée aussitôt. `immediate` (tactile) supprime la
+   * temporisation avant l'accélération : la pièce accompagne le doigt dès qu'il descend.
    */
-  setSoftDrop(active: boolean): void {
-    if (active && !this.#dropping()) this.#softDropHeldMs = 0;
+  setSoftDrop(active: boolean, immediate = false): void {
+    if (active && !this.#dropping()) {
+      this.#softDropHeldMs = immediate ? this.#tuning.timing.softDropDelayMs : 0;
+    }
     this.#softDrop = active;
   }
 
