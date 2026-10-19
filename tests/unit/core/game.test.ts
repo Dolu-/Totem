@@ -111,6 +111,20 @@ describe('Game : chute et verrouillage', () => {
     expect(softMs).toBeGreaterThan(softDropDelayMs);
   });
 
+  it('stepDown : une case sans changer la vitesse, jamais au-delà du repos', () => {
+    const game = gameWithGrid(EMPTY_6x8);
+    game.debugSetPiece([1, 2, 3], 0);
+    const y0 = game.snapshot().piece?.y ?? 0;
+    const speed = game.currentSpeed();
+    expect(game.stepDown()).toBe(true);
+    expect(game.snapshot().piece?.y).toBe(y0 + 1);
+    expect(game.currentSpeed()).toBe(speed);
+    for (let i = 0; i < 20; i += 1) game.stepDown();
+    expect(game.snapshot().piece?.y).toBeLessThanOrEqual(7);
+    expect(game.snapshot().piecesPlaced).toBe(0);
+    expect(game.stepDown()).toBe(false);
+  });
+
   it('descente maintenue (touche restée enfoncée) : continue sur les pièces suivantes', () => {
     const game = gameWithGrid(EMPTY_6x8);
     game.debugSetPiece([1, 2, 3], 0);

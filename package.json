@@ -1,6 +1,6 @@
 {
   "name": "totem",
-  "version": "1.0.0-dev",
+  "version": "1.1.0",
   "private": true,
   "description": "Totem : des trios de blocs colorés tombent, alignez les couleurs. Jouable sur PC et mobile, sans installation.",
   "license": "MIT",

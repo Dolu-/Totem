@@ -26,8 +26,8 @@ if (root) {
       onOfflineReady: () => {
         app.notifyOfflineReady();
       },
-      onUpdateAvailable: (update) => {
-        app.notifyUpdate(update);
+      onUpdateAvailable: (update, latest) => {
+        app.notifyUpdate(update, latest);
       },
     });
   }
@@ -39,8 +39,8 @@ if (root) {
       get screen() {
         return app.screen;
       },
-      notifyUpdate: (update) => {
-        app.notifyUpdate(update);
+      notifyUpdate: (update, latest) => {
+        app.notifyUpdate(update, latest);
       },
       startTestGame: ({ tuning, ...options }) => {
         app.startGame({

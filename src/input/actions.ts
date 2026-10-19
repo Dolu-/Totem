@@ -7,7 +7,9 @@ export interface ActionSink {
   moveRight(): void;
   rotate(): void;
   /** Descente rapide maintenue (tant que la commande est tenue, y compris pour les pièces suivantes). */
-  setSoftDrop(active: boolean, immediate?: boolean): void;
+  setSoftDrop(active: boolean): void;
+  /** Descend la pièce d'une case sans l'accélérer (le doigt qui glisse vers le bas la suit). */
+  stepDown(): void;
   /** Descente rapide ponctuelle (geste vif) : jusqu'à ce que la pièce courante se pose. */
   softDropUntilLock(): void;
   togglePause(): void;

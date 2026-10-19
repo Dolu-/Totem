@@ -5,6 +5,7 @@ import {
   PREVIOUS_STORAGE_KEYS,
   STORAGE_KEY,
   Store,
+  UNVERSIONED_RELEASE,
   normalizeName,
   sanitizeData,
   type ScoreContext,
@@ -64,6 +65,22 @@ describe('Store : lecture', () => {
       { name: 'Ludo', score: 50, level: 3, date: '2026-10-17T12:00:00.000Z', context: CONTEXT },
     ]);
     expect(second.lastName).toBe('Ludo');
+  });
+
+  it('dernière version vue : absente à la première visite, conservée ensuite', () => {
+    const storage = new MemoryStorage();
+    const first = new Store(storage);
+    expect(first.seenVersion).toBeNull();
+    first.setSeenVersion('1.2.0');
+    expect(new Store(storage).seenVersion).toBe('1.2.0');
+  });
+
+  it('dernière version vue : données antérieures au suivi des versions → 1.0.0', () => {
+    expect(sanitizeData({ highScores: [] }).seenVersion).toBe(UNVERSIONED_RELEASE);
+    expect(sanitizeData({ seenVersion: null }).seenVersion).toBeNull();
+    expect(sanitizeData({ seenVersion: 'v2' }).seenVersion).toBeNull();
+    expect(sanitizeData({ seenVersion: '1.3.0' }).seenVersion).toBe('1.3.0');
+    expect(sanitizeData('rien').seenVersion).toBeNull();
   });
 
   it('écarte les records invalides et trie les autres', () => {

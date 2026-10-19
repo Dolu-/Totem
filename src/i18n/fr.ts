@@ -5,6 +5,7 @@
 export const fr = {
   'app.title': 'Totem',
   'app.tagline': '{ dolu.fr }',
+  'app.version': 'Version {version}',
 
   'menu.play': 'Jouer',
   'menu.resume': 'Reprendre',
@@ -13,6 +14,8 @@ export const fr = {
   'menu.help': 'Aide',
   'menu.back': 'Retour',
   'menu.home': 'Accueil',
+  'menu.update': 'Mettre à jour',
+  'menu.updateTo': 'Mettre à jour (v{version})',
 
   'hud.score': 'Score',
   'hud.level': 'Niveau',
@@ -92,7 +95,22 @@ export const fr = {
   'help.touch.move':
     'Glisser à gauche ou à droite : déplacer (un long glissement déplace de plusieurs colonnes)',
   'help.touch.rotate': 'Toucher ou glisser vers le haut : permuter les couleurs',
-  'help.touch.drop': 'Glisser vers le bas : accélérer la descente',
+  'help.touch.drop': 'Glisser vers le bas : la pièce suit le doigt',
+  'help.history': 'Historique des versions',
+
+  'releases.title': 'Historique des versions',
+  'releases.heading': 'Version {version}',
+  'releases.feature': 'Nouveau',
+  'releases.fix': 'Correction',
+  'whatsNew.title': 'Quoi de neuf ?',
+  'whatsNew.intro': 'Le jeu est passé à la version {version}.',
+  'whatsNew.continue': 'Continuer',
+  'update.title': 'Nouvelle version',
+  'update.intro': 'Vous jouez à la version {current}. La version {latest} est disponible.',
+  'update.introUnknown': 'Une nouvelle version est disponible.',
+  'update.note': 'Le jeu redémarre aussitôt ; réglages et records sont conservés.',
+  'update.now': 'Mettre à jour',
+  'update.later': 'Plus tard',
 
   'board.label': 'Plateau de jeu',
   'hud.progress': 'Progression vers le niveau suivant',
@@ -102,8 +120,6 @@ export const fr = {
 
   'notice.storageUnavailable':
     'Le stockage local est indisponible : réglages et records ne seront pas conservés.',
-  'notice.updateAvailable': 'Une nouvelle version est disponible.',
-  'notice.reload': 'Mettre à jour',
   'notice.offlineReady': 'Le jeu est disponible hors ligne.',
 } as const;
 

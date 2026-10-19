@@ -9,6 +9,7 @@ import type { Game } from '../core/game.ts';
 import { Grid } from '../core/grid.ts';
 import type { CellValue } from '../core/types.ts';
 import type { GameView } from '../game-view.ts';
+import type { LatestVersion } from '../release/version.ts';
 
 /** Instantané sérialisable (la grille devient des lignes texte, cf. `Grid.toRows`). */
 export interface TestSnapshot {
@@ -38,8 +39,11 @@ export interface TestHooks {
   setColorSymbols(enabled: boolean): void;
   /** Écran affiché (`home`, `playing`, `paused`, `gameOver`…). */
   screen(): string;
-  /** Simule l'arrivée d'une nouvelle version ; `updateRequested()` dit si le joueur l'a acceptée. */
-  simulateUpdate(): void;
+  /**
+   * Simule l'arrivée d'une nouvelle version (`latest` : contenu de `version.json`, absent s'il
+   * n'a pu être lu) ; `updateRequested()` dit si le joueur l'a acceptée.
+   */
+  simulateUpdate(latest?: LatestVersion): void;
   updateRequested(): boolean;
 }
 
@@ -64,7 +68,7 @@ export interface TestTarget {
   readonly screen: string;
   /** Lance une partie (écran de jeu) avec ces options. */
   startTestGame(options: TestGameOptions): void;
-  notifyUpdate(update: () => void): void;
+  notifyUpdate(update: () => void, latest: LatestVersion | null): void;
 }
 
 export function installTestHooks(target: TestTarget): void {
@@ -117,10 +121,10 @@ export function installTestHooks(target: TestTarget): void {
     screen() {
       return target.screen;
     },
-    simulateUpdate() {
+    simulateUpdate(latest) {
       target.notifyUpdate(() => {
         updateRequested = true;
-      });
+      }, latest ?? null);
     },
     updateRequested() {
       return updateRequested;

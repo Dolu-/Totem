@@ -38,21 +38,105 @@ test.describe('application installable (PWA)', () => {
     }
   });
 
-  test('une mise à jour n’interrompt jamais une partie : proposée hors du jeu', async ({
+  test('une mise à jour n’interrompt jamais une partie : proposée à l’accueil, nouveautés à l’appui', async ({
     page,
   }) => {
     await openGame(page);
-    await page.evaluate(() => window.__totem?.simulateUpdate());
-    const bar = page.locator('.notice-bar');
-    await expect(bar).toBeHidden();
+    await page.evaluate(() =>
+      window.__totem?.simulateUpdate({
+        version: '99.0.0',
+        changelog: [
+          {
+            version: '99.0.0',
+            date: '2099-01-02',
+            changes: [{ kind: 'fix', fr: 'Correction future', en: 'Future fix' }],
+          },
+          {
+            version: '98.0.0',
+            date: '2099-01-01',
+            changes: [{ kind: 'feature', fr: 'Nouveauté future', en: 'Future feature' }],
+          },
+          {
+            version: '1.0.0',
+            date: '2026-10-18',
+            changes: [{ kind: 'feature', fr: 'Déjà installée', en: 'Already installed' }],
+          },
+        ],
+      }),
+    );
+    // Rien en pleine partie, ni à la pause.
+    await expect(page.locator('.notice-bar')).toBeHidden();
     await page.locator('.hud__pause').click();
-    await expect(bar).toContainText('Une nouvelle version est disponible.');
-    // Retour en jeu : le bandeau s'efface, puis revient à la pause suivante.
-    await page.getByRole('button', { name: 'Reprendre' }).click();
-    await expect(bar).toBeHidden();
-    await page.locator('.hud__pause').click();
-    await bar.getByRole('button', { name: 'Mettre à jour' }).click();
+    await expect(page.locator('.notice-bar')).toBeHidden();
+    await page.getByRole('button', { name: 'Arrêter la partie' }).click();
+    await page.getByRole('button', { name: 'Accueil' }).click();
+
+    await page.getByRole('button', { name: 'Mettre à jour (v99.0.0)' }).click();
+    await expect(page.getByRole('heading', { name: 'Nouvelle version' })).toBeVisible();
+    const versions = page.locator('.release');
+    await expect(versions).toHaveCount(2);
+    await expect(versions.first()).toContainText('Correction future');
+    await expect(versions.last()).toContainText('Nouveauté future');
+    expect(await page.evaluate(() => window.__totem?.updateRequested())).toBe(false);
+
+    await page.getByRole('button', { name: 'Mettre à jour', exact: true }).click();
     expect(await page.evaluate(() => window.__totem?.updateRequested())).toBe(true);
+    // Nouveautés déjà vues : pas de « Quoi de neuf » après le rechargement.
+    const seen = await page.evaluate(
+      () =>
+        (JSON.parse(localStorage.getItem('totem:v1') ?? '{}') as { seenVersion?: string })
+          .seenVersion,
+    );
+    expect(seen).toBe('99.0.0');
+  });
+
+  test('mise à jour sans version.json lisible : proposée sans détail', async ({ page }) => {
+    await page.goto('./');
+    await page.waitForFunction(() => window.__totem !== undefined);
+    await page.evaluate(() => window.__totem?.simulateUpdate());
+    await page.getByRole('button', { name: 'Mettre à jour', exact: true }).click();
+    await expect(page.getByText('Une nouvelle version est disponible.')).toBeVisible();
+    await expect(page.locator('.release')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Plus tard' }).click();
+    await expect(page.getByRole('button', { name: 'Jouer' })).toBeVisible();
+  });
+});
+
+test.describe('versions', () => {
+  test('version affichée, historique dans l’aide', async ({ page }) => {
+    await page.goto('./');
+    await expect(page.locator('.app-version')).toHaveText(/^Version \d+\.\d+\.\d+$/);
+    await page.getByRole('button', { name: 'Aide' }).click();
+    await page.getByRole('button', { name: 'Historique des versions' }).click();
+    await expect(page.getByRole('heading', { name: 'Historique des versions' })).toBeVisible();
+    await expect(page.locator('.release[data-version="1.0.0"]')).toBeVisible();
+    await page.getByRole('button', { name: 'Retour' }).click();
+    await expect(page.getByRole('heading', { name: 'Aide' })).toBeVisible();
+  });
+
+  test('première visite : pas de « Quoi de neuf »', async ({ page }) => {
+    await page.goto('./');
+    await expect(page.getByRole('button', { name: 'Jouer' })).toBeVisible();
+    await page.reload();
+    await expect(page.getByRole('button', { name: 'Jouer' })).toBeVisible();
+  });
+
+  test('joueur de la 1.0.0 : « Quoi de neuf » une seule fois', async ({ page }) => {
+    // Données de la 1.0.0 : aucune version vue enregistrée.
+    await page.addInitScript(() => {
+      if (sessionStorage.getItem('seeded') === null) {
+        sessionStorage.setItem('seeded', '1');
+        localStorage.setItem('totem:v1', JSON.stringify({ version: 1, legacyImported: true }));
+      }
+    });
+    await page.goto('./');
+    await expect(page.getByRole('heading', { name: 'Quoi de neuf ?' })).toBeVisible();
+    await expect(page.locator('.release[data-version="1.1.0"]')).toBeVisible();
+    await expect(page.locator('.release[data-version="1.0.0"]')).toHaveCount(0);
+    await page.getByRole('button', { name: 'Continuer' }).click();
+    await expect(page.getByRole('button', { name: 'Jouer' })).toBeVisible();
+    await page.reload();
+    await expect(page.getByRole('button', { name: 'Jouer' })).toBeVisible();
   });
 });
 
