@@ -7,7 +7,7 @@ const CELL = 40;
 let clock = 0;
 let controller: GestureController | null = null;
 
-function setup() {
+function setup(flickToLock = false) {
   clock = 0;
   const element = document.createElement('div');
   document.body.append(element);
@@ -18,6 +18,7 @@ function setup() {
     swipeCells: 1,
     tapMaxPx: 10,
     tapMaxMs: 250,
+    flickToLock: () => flickToLock,
     now: () => clock,
   });
   return { element, sink, gestures: controller };
@@ -132,10 +133,22 @@ describe('GestureController', () => {
     expect(sink.log).toEqual(['drop:on', 'drop:off']);
   });
 
-  it('geste vif vers le bas : la descente rapide continue jusqu’à la pose de la pièce', () => {
+  it('geste vif vers le bas : la descente s’arrête au relâchement par défaut', () => {
     const { element, sink } = setup();
     swipe(element, [100, 100], [100, 220], 150, 3);
+    expect(sink.log).toEqual(['drop:on', 'drop:off']);
+  });
+
+  it('geste vif vers le bas avec le réglage : la descente continue jusqu’à la pose', () => {
+    const { element, sink } = setup(true);
+    swipe(element, [100, 100], [100, 220], 150, 3);
     expect(sink.log).toEqual(['drop:on', 'drop:off', 'drop:untilLock']);
+  });
+
+  it('glissement lent vers le bas avec le réglage : pas de chute jusqu’à la pose', () => {
+    const { element, sink } = setup(true);
+    swipe(element, [100, 100], [100, 220], 600, 6);
+    expect(sink.log).toEqual(['drop:on', 'drop:off']);
   });
 
   it('geste vif sans mouvement intermédiaire : la position finale compte', () => {

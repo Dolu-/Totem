@@ -23,6 +23,13 @@ function inputModeFor(info: TestInfo, browserName: string): InputMode {
 
 /** Lance une partie en temps réel (pas de temps figé). */
 async function startRealGame(page: Page, options: TestGameOptions): Promise<void> {
+  // Le bot pose ses pièces par un geste vif : réglage « poser la pièce » activé.
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      'totem:v1',
+      JSON.stringify({ version: 1, settings: { flickToLock: true }, legacyImported: true }),
+    );
+  });
   await page.goto('./');
   await page.waitForFunction(() => window.__totem !== undefined);
   await page.evaluate((o) => window.__totem?.newGame(o), options);

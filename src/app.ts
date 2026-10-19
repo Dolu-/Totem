@@ -82,8 +82,8 @@ export class App {
       rotate: () => {
         this.#whenPlaying((g) => g.rotate());
       },
-      setSoftDrop: (active) => {
-        this.view.game?.setSoftDrop(active && this.#screen === 'playing');
+      setSoftDrop: (active, immediate) => {
+        this.view.game?.setSoftDrop(active && this.#screen === 'playing', immediate);
       },
       softDropUntilLock: () => {
         this.#whenPlaying((g) => {
@@ -123,6 +123,7 @@ export class App {
     this.#gestures = new GestureController(boardHost, sink, {
       ...gestures,
       cellSize: () => this.view.cellSize,
+      flickToLock: () => this.#settings.flickToLock,
     });
     this.#buttons = new TouchButtons(sink, this.#buttonLabels(), {
       delayMs: timing.repeatDelayMs,

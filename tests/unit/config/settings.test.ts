@@ -33,6 +33,7 @@ describe('sanitizeSettings', () => {
       language: 'en',
       touchButtons: true,
       colorSymbols: true,
+      flickToLock: true,
     } as const;
     expect(sanitizeSettings(valid)).toEqual(valid);
   });

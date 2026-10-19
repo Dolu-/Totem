@@ -5,8 +5,8 @@
  * - glisser vers le haut : permuter (décidé au relâchement, comme 2048) ;
  * - toucher (tap) ou clic bref : permuter ;
  * - glisser vers le bas : descente rapide tant que le doigt reste posé (même pour
- *   les pièces suivantes) ; un geste vif (relâché rapidement) la garde jusqu'à ce
- *   que la pièce courante se pose.
+ *   les pièces suivantes), sans temporisation ; en option (`flickToLock`), un geste
+ *   vif (relâché rapidement) la garde jusqu'à ce que la pièce courante se pose.
  * L'axe est verrouillé dès que le geste est reconnu : pas de diagonale ambiguë.
  */
 import { capturePointer, type ActionSink } from './actions.ts';
@@ -20,6 +20,8 @@ export interface GestureOptions {
   readonly swipeCells: number;
   readonly tapMaxPx: number;
   readonly tapMaxMs: number;
+  /** Réglage du joueur : un geste vif vers le bas pose la pièce (sinon la descente suit le doigt). */
+  readonly flickToLock?: () => boolean;
   /** Horloge en ms (injectable pour les tests). */
   readonly now?: () => number;
 }
@@ -128,7 +130,7 @@ export class GestureController {
       }
     } else if (dy >= swipe && !track.dropping) {
       track.dropping = true;
-      this.#sink.setSoftDrop(true);
+      this.#sink.setSoftDrop(true, true);
     } else if (dy <= -swipe) {
       track.swipedUp = true;
     }
@@ -150,8 +152,8 @@ export class GestureController {
       if (track.swipedUp && !track.dropping) this.#sink.rotate();
       if (track.dropping) {
         this.#sink.setSoftDrop(false);
-        // Geste vif vers le bas : la descente rapide continue jusqu'à la pose de la pièce.
-        if (quick) this.#sink.softDropUntilLock();
+        // Geste vif vers le bas (si réglé) : la descente rapide continue jusqu'à la pose.
+        if (quick && this.#options.flickToLock?.() === true) this.#sink.softDropUntilLock();
       }
     }
   };

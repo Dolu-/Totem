@@ -124,7 +124,10 @@ export function settingsScreen(t: Translator, props: SettingsProps): HTMLElement
     return h('div', { class: 'field field--select' }, h('label', { for: id }, t.t(label)), el);
   };
 
-  const checkbox = (key: 'touchButtons' | 'colorSymbols', label: MessageKey): HTMLElement => {
+  const checkbox = (
+    key: 'touchButtons' | 'colorSymbols' | 'flickToLock',
+    label: MessageKey,
+  ): HTMLElement => {
     const id = `setting-${key}`;
     const input = h('input', { id, name: key, type: 'checkbox', checked: draft[key] });
     input.addEventListener('change', () => {
@@ -170,6 +173,7 @@ export function settingsScreen(t: Translator, props: SettingsProps): HTMLElement
         ),
         checkbox('touchButtons', 'settings.touchButtons'),
         checkbox('colorSymbols', 'settings.colorSymbols'),
+        checkbox('flickToLock', 'settings.flickToLock'),
       ),
       h(
         'div',
