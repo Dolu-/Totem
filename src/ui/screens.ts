@@ -14,6 +14,7 @@ import type { PresetId } from '../config/tuning.ts';
 import type { GameResult } from '../core/game.ts';
 import type { SpawnMode } from '../core/piece.ts';
 import type { MessageKey, Translator } from '../i18n/index.ts';
+import type { Release } from '../release/changelog.ts';
 import { BLOCK_STYLES } from '../render/palette.ts';
 import { MAX_NAME_LENGTH, type HighScore } from '../storage/store.ts';
 import { button, h } from './dom.ts';
@@ -27,6 +28,10 @@ export interface HomeProps {
   readonly onSettings: () => void;
   readonly onHelp: () => void;
   readonly storageWarning: boolean;
+  /** Version installée, affichée sous le menu. */
+  readonly version: string;
+  /** Mise à jour prête (version annoncée si connue) : bouton dédié. */
+  readonly update: { readonly version: string | null; readonly onClick: () => void } | null;
 }
 
 export function homeScreen(t: Translator, props: HomeProps): HTMLElement {
@@ -61,9 +66,18 @@ export function homeScreen(t: Translator, props: HomeProps): HTMLElement {
         button(t.t('menu.highScores'), props.onScores, { 'data-action': 'scores' }),
         button(t.t('menu.settings'), props.onSettings, { 'data-action': 'settings' }),
         button(t.t('menu.help'), props.onHelp, { 'data-action': 'help' }),
+        props.update &&
+          button(
+            props.update.version === null
+              ? t.t('menu.update')
+              : t.t('menu.updateTo', { version: props.update.version }),
+            props.update.onClick,
+            { class: 'btn btn--update', 'data-action': 'update' },
+          ),
       ),
       props.storageWarning &&
         h('p', { class: 'notice', role: 'status' }, t.t('notice.storageUnavailable')),
+      h('p', { class: 'app-version' }, t.t('app.version', { version: props.version })),
     ),
   );
 }
@@ -294,7 +308,13 @@ export function scoresScreen(t: Translator, props: ScoresProps): HTMLElement {
 
 // ─── Aide ─────────────────────────────────────────────────────────────────
 
-export function helpScreen(t: Translator, onBack: () => void): HTMLElement {
+export interface HelpProps {
+  readonly version: string;
+  readonly onHistory: () => void;
+  readonly onBack: () => void;
+}
+
+export function helpScreen(t: Translator, props: HelpProps): HTMLElement {
   const list = (keys: readonly MessageKey[]): HTMLElement =>
     h(
       'ul',
@@ -319,14 +339,92 @@ export function helpScreen(t: Translator, onBack: () => void): HTMLElement {
       ]),
       h('h2', {}, t.t('help.touch')),
       list(['help.touch.move', 'help.touch.rotate', 'help.touch.drop']),
+      h('p', { class: 'app-version' }, t.t('app.version', { version: props.version })),
       h(
         'div',
         { class: 'actions' },
-        button(t.t('menu.back'), onBack, {
+        button(t.t('help.history'), props.onHistory, { 'data-action': 'history' }),
+        button(t.t('menu.back'), props.onBack, {
           class: 'btn btn--primary',
           'data-autofocus': true,
           'data-action': 'back',
         }),
+      ),
+    ),
+  );
+}
+
+// ─── Versions (historique, nouveautés, mise à jour) ──────────────────────
+
+export interface ReleasesProps {
+  readonly title: string;
+  /** Paragraphes avant la liste des versions. */
+  readonly intro: readonly string[];
+  readonly releases: readonly Release[];
+  /** Boutons, le dernier est le bouton principal. */
+  readonly actions: readonly {
+    readonly label: string;
+    readonly id: string;
+    readonly onClick: () => void;
+  }[];
+}
+
+export function releasesScreen(t: Translator, props: ReleasesProps): HTMLElement {
+  const releases = props.releases.map((release) =>
+    h(
+      'section',
+      { class: 'release', 'data-version': release.version },
+      h(
+        'h2',
+        {},
+        t.t('releases.heading', { version: release.version }),
+        ' ',
+        // Midi local : la date reste la même quel que soit le fuseau.
+        h(
+          'time',
+          { class: 'release__date', datetime: release.date },
+          t.formatDate(`${release.date}T12:00:00`),
+        ),
+      ),
+      h(
+        'ul',
+        { class: 'release__changes' },
+        release.changes.map((change) =>
+          h(
+            'li',
+            {},
+            h(
+              'span',
+              { class: `release__kind release__kind--${change.kind}` },
+              t.t(`releases.${change.kind}`),
+            ),
+            ' ',
+            change[t.language],
+          ),
+        ),
+      ),
+    ),
+  );
+  const last = props.actions.length - 1;
+  return h(
+    'section',
+    { class: 'screen screen--releases', 'aria-labelledby': 'releases-title' },
+    h(
+      'div',
+      { class: 'card card--text' },
+      h('h1', { class: 'title title--small', id: 'releases-title' }, props.title),
+      props.intro.map((text) => h('p', {}, text)),
+      releases,
+      h(
+        'div',
+        { class: 'actions' },
+        props.actions.map((action, i) =>
+          button(action.label, action.onClick, {
+            class: i === last ? 'btn btn--primary' : 'btn',
+            'data-autofocus': i === last,
+            'data-action': action.id,
+          }),
+        ),
       ),
     ),
   );

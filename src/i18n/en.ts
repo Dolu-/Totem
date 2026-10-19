@@ -3,6 +3,7 @@ import type { Messages } from './fr.ts';
 export const en: Messages = {
   'app.title': 'Totem',
   'app.tagline': '{ dolu.fr }',
+  'app.version': 'Version {version}',
 
   'menu.play': 'Play',
   'menu.resume': 'Resume',
@@ -11,6 +12,8 @@ export const en: Messages = {
   'menu.help': 'Help',
   'menu.back': 'Back',
   'menu.home': 'Home',
+  'menu.update': 'Update',
+  'menu.updateTo': 'Update (v{version})',
 
   'hud.score': 'Score',
   'hud.level': 'Level',
@@ -89,7 +92,22 @@ export const en: Messages = {
   'help.touch': 'Touch screen and mouse',
   'help.touch.move': 'Swipe left or right: move (a long swipe moves several columns)',
   'help.touch.rotate': 'Tap or swipe up: rotate colors',
-  'help.touch.drop': 'Swipe down: drop faster',
+  'help.touch.drop': 'Swipe down: the piece follows your finger',
+  'help.history': 'Version history',
+
+  'releases.title': 'Version history',
+  'releases.heading': 'Version {version}',
+  'releases.feature': 'New',
+  'releases.fix': 'Fix',
+  'whatsNew.title': 'What’s new?',
+  'whatsNew.intro': 'The game has been updated to version {version}.',
+  'whatsNew.continue': 'Continue',
+  'update.title': 'New version',
+  'update.intro': 'You are playing version {current}. Version {latest} is available.',
+  'update.introUnknown': 'A new version is available.',
+  'update.note': 'The game restarts right away; settings and high scores are kept.',
+  'update.now': 'Update',
+  'update.later': 'Later',
 
   'board.label': 'Game board',
   'hud.progress': 'Progress to next level',
@@ -99,7 +117,5 @@ export const en: Messages = {
 
   'notice.storageUnavailable':
     'Local storage is unavailable: settings and scores will not be kept.',
-  'notice.updateAvailable': 'A new version is available.',
-  'notice.reload': 'Update',
   'notice.offlineReady': 'The game is now available offline.',
 };

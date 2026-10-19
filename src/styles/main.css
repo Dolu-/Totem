@@ -522,6 +522,61 @@ h2 {
   color: var(--muted);
 }
 
+.app-version {
+  margin: 20px 0 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+/* Mise à jour disponible : bouton accentué, sans voler la vedette à « Jouer ». */
+.btn--update {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ─── Versions (historique, nouveautés, mise à jour) ──────────────────────── */
+
+.release h2 {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 12px;
+}
+
+.release__date {
+  color: var(--muted);
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.release__changes {
+  margin: 0;
+  padding-left: 1.2em;
+}
+
+.release__changes li + li {
+  margin-top: 6px;
+}
+
+.release__kind {
+  display: inline-block;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  vertical-align: 0.1em;
+}
+
+.release__kind--feature {
+  background: rgba(96, 165, 250, 0.18);
+  color: #93c5fd;
+}
+
+.release__kind--fix {
+  background: rgba(251, 191, 36, 0.16);
+  color: var(--warning);
+}
+
 .logo {
   display: grid;
   grid-template-columns: repeat(3, 34px);
@@ -538,7 +593,8 @@ h2 {
     grid-template-areas:
       'logo menu'
       'title menu'
-      'tagline menu';
+      'tagline menu'
+      'version menu';
     align-items: center;
     column-gap: 40px;
     width: auto;
@@ -565,6 +621,11 @@ h2 {
   .card--home .tagline {
     grid-area: tagline;
     margin: 0;
+  }
+
+  .card--home .app-version {
+    grid-area: version;
+    margin: 6px 0 0;
   }
 
   .card--home .menu {

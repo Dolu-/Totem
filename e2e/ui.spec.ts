@@ -211,7 +211,10 @@ test.describe('accessibilité et apparence', () => {
   test('accueil', async ({ page }) => {
     await page.goto('./');
     await expectAccessible(page);
-    await expect(page).toHaveScreenshot('screen-home.png');
+    // Numéro de version masqué : il change à chaque publication.
+    await expect(page).toHaveScreenshot('screen-home.png', {
+      mask: [page.locator('.app-version')],
+    });
   });
 
   test('réglages', async ({ page }) => {
@@ -225,7 +228,18 @@ test.describe('accessibilité et apparence', () => {
     await page.goto('./');
     await page.getByRole('button', { name: 'Aide' }).click();
     await expectAccessible(page);
-    await expect(page).toHaveScreenshot('screen-help.png', { fullPage: true });
+    await expect(page).toHaveScreenshot('screen-help.png', {
+      fullPage: true,
+      mask: [page.locator('.app-version')],
+    });
+  });
+
+  // Pas de capture : le contenu change à chaque version.
+  test('historique des versions', async ({ page }) => {
+    await page.goto('./');
+    await page.getByRole('button', { name: 'Aide' }).click();
+    await page.getByRole('button', { name: 'Historique des versions' }).click();
+    await expectAccessible(page);
   });
 
   test('jeu (HUD) et pause', async ({ page }) => {

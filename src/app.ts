@@ -2,8 +2,9 @@
  * Application : enchaînement des écrans (machine à états), partie en cours,
  * entrées, HUD, stockage et langue.
  *
- *   home ─→ playing ⇄ paused ─→ gameOver ─→ scores
- *     ├─→ scores / settings / help ─→ home
+ *   (whatsNew ─→) home ─→ playing ⇄ paused ─→ gameOver ─→ scores
+ *     ├─→ scores / settings / help (─→ releases) ─→ home
+ *     └─→ update ─→ rechargement (nouvelle version) | home
  */
 import { gameOptionsFromSettings, type Settings } from './config/settings.ts';
 import { tuningFingerprint, tuningForPreset, type Tuning } from './config/tuning.ts';
@@ -15,26 +16,55 @@ import { GestureController } from './input/gestures.ts';
 import { KeyboardController } from './input/keyboard.ts';
 import { TouchButtons } from './input/touch-buttons.ts';
 import { DEFAULT_STYLE, type RenderStyle } from './render/style.ts';
+import { APP_VERSION } from './release/app-version.ts';
+import { CHANGELOG, type Release } from './release/changelog.ts';
+import { compareVersions, releasesBetween, type LatestVersion } from './release/version.ts';
 import type { Store } from './storage/store.ts';
 import { focusFirst, h } from './ui/dom.ts';
 import { displayLevel } from './ui/format.ts';
 import { Hud } from './ui/hud.ts';
-import { NoticeBar, type NoticeAction } from './ui/notice.ts';
+import { NoticeBar } from './ui/notice.ts';
 import {
   gameOverScreen,
   helpScreen,
   homeScreen,
   pauseScreen,
+  releasesScreen,
   scoresScreen,
   settingsScreen,
 } from './ui/screens.ts';
 
-export type ScreenId = 'home' | 'playing' | 'paused' | 'gameOver' | 'scores' | 'settings' | 'help';
+export type ScreenId =
+  | 'home'
+  | 'playing'
+  | 'paused'
+  | 'gameOver'
+  | 'scores'
+  | 'settings'
+  | 'help'
+  | 'releases'
+  | 'whatsNew'
+  | 'update';
 
 /** Écrans où le plateau est visible. */
 const GAME_SCREENS: ReadonlySet<ScreenId> = new Set(['playing', 'paused', 'gameOver']);
 /** Délai avant l'écran de fin (laisse voir la dernière pièce). */
 const GAME_OVER_DELAY_MS = 700;
+/** Écran atteint par Échap depuis les menus. */
+const ESCAPE_TARGETS: Partial<Record<ScreenId, ScreenId>> = {
+  scores: 'home',
+  settings: 'home',
+  help: 'home',
+  releases: 'help',
+  whatsNew: 'home',
+  update: 'home',
+};
+
+/** Mise à jour prête : `apply` l'installe et recharge ; `latest` vient de `version.json` (si lu). */
+interface PendingUpdate {
+  readonly apply: () => void;
+  readonly latest: LatestVersion | null;
+}
 
 function randomSeed(): number {
   return crypto.getRandomValues(new Uint32Array(1))[0] ?? Date.now();
@@ -55,8 +85,10 @@ export class App {
   readonly #buttons: TouchButtons;
   readonly #notice = new NoticeBar();
   /** Message en attente : jamais affiché en pleine partie. */
-  #pendingNotice: { text: () => string; action?: () => NoticeAction } | null = null;
-  #shownNotice: { text: () => string; action?: () => NoticeAction } | null = null;
+  #pendingNotice: (() => string) | null = null;
+  #update: PendingUpdate | null = null;
+  /** Versions arrivées depuis la dernière visite (écran « Quoi de neuf »). */
+  #whatsNew: readonly Release[] = [];
   #settings: Settings;
   #t: Translator;
   #screen: ScreenId = 'home';
@@ -147,11 +179,12 @@ export class App {
       this.#hud.update(game.snapshot(), game.tuning.progression.unit);
     });
 
-    // Échap revient à l'accueil depuis les menus.
+    // Échap revient à l'écran précédent depuis les menus.
     window.addEventListener('keydown', (event) => {
-      if (event.code === 'Escape' && ['scores', 'settings', 'help'].includes(this.#screen)) {
+      const target = ESCAPE_TARGETS[this.#screen];
+      if (event.code === 'Escape' && target) {
         event.preventDefault();
-        this.#show('home');
+        this.#show(target);
       }
     });
     // L'application passe en arrière-plan (onglet, appel, autre appli) : pause automatique.
@@ -169,8 +202,12 @@ export class App {
     return this.#screen;
   }
 
+  /** Accueil, précédé des nouveautés si le jeu a changé de version depuis la dernière visite. */
   start(): void {
-    this.#show('home');
+    const seen = this.#store.seenVersion;
+    this.#whatsNew = seen === null ? [] : releasesBetween(CHANGELOG, seen, APP_VERSION);
+    if (seen !== APP_VERSION) this.#store.setSeenVersion(APP_VERSION);
+    this.#show(this.#whatsNew.length > 0 ? 'whatsNew' : 'home');
   }
 
   /** Nouvelle partie avec les réglages du joueur (et d'éventuelles surcharges, pour les tests). */
@@ -205,15 +242,16 @@ export class App {
 
   /** Le jeu est disponible hors ligne (service worker installé). */
   notifyOfflineReady(): void {
-    this.#queueNotice({ text: () => this.#t.t('notice.offlineReady') });
+    this.#queueNotice(() => this.#t.t('notice.offlineReady'));
   }
 
-  /** Une nouvelle version est prête ; `update` l'installe et recharge la page. */
-  notifyUpdate(update: () => void): void {
-    this.#queueNotice({
-      text: () => this.#t.t('notice.updateAvailable'),
-      action: () => ({ label: this.#t.t('notice.reload'), onClick: update }),
-    });
+  /**
+   * Une nouvelle version est prête : bouton dédié sur l'accueil (jamais imposée).
+   * `apply` l'installe et recharge la page ; `latest` (`version.json`) en donne les nouveautés.
+   */
+  notifyUpdate(apply: () => void, latest: LatestVersion | null = null): void {
+    this.#update = { apply, latest };
+    if (this.#screen === 'home') this.#show('home');
   }
 
   togglePause(): void {
@@ -276,17 +314,22 @@ export class App {
     this.#controls.hidden = !this.#settings.touchButtons;
   }
 
-  #queueNotice(notice: { text: () => string; action?: () => NoticeAction }): void {
-    this.#pendingNotice = notice;
+  #queueNotice(text: () => string): void {
+    this.#pendingNotice = text;
     this.#flushNotice();
   }
 
   #flushNotice(): void {
-    const notice = this.#pendingNotice;
-    if (!notice || this.#screen === 'playing') return;
+    const text = this.#pendingNotice;
+    if (!text || this.#screen === 'playing') return;
     this.#pendingNotice = null;
-    this.#shownNotice = notice;
-    this.#notice.show(notice.text(), notice.action?.());
+    this.#notice.show(text());
+  }
+
+  /** Dernière version publiée, si elle est plus récente que celle-ci. */
+  #newerRelease(): LatestVersion | null {
+    const latest = this.#update?.latest ?? null;
+    return latest && compareVersions(latest.version, APP_VERSION) > 0 ? latest : null;
   }
 
   #announce(text: string): void {
@@ -310,12 +353,8 @@ export class App {
     this.#root.dataset['screen'] = screen;
     this.#keyboard.enabled = screen === 'playing' || screen === 'paused';
     this.#gestures.enabled = screen === 'playing';
-    // En partie, aucun bandeau ne gêne le jeu ; il réapparaîtra à l'écran suivant.
-    if (screen === 'playing' && this.#notice.visible) {
-      this.#notice.hide();
-      // Une mise à jour en attente sera reproposée ; un simple message informatif, non.
-      if (this.#shownNotice?.action) this.#pendingNotice ??= this.#shownNotice;
-    }
+    // En partie, aucun bandeau ne gêne le jeu.
+    if (screen === 'playing' && this.#notice.visible) this.#notice.hide();
     this.#flushNotice();
 
     const content = this.#build(screen);
@@ -351,6 +390,13 @@ export class App {
             this.#show('help');
           },
           storageWarning: !this.#store.persistent,
+          version: APP_VERSION,
+          update: this.#update && {
+            version: this.#newerRelease()?.version ?? null,
+            onClick: () => {
+              this.#show('update');
+            },
+          },
         });
       case 'playing':
         return null;
@@ -417,7 +463,62 @@ export class App {
           onCancel: home,
         });
       case 'help':
-        return helpScreen(t, home);
+        return helpScreen(t, {
+          version: APP_VERSION,
+          onHistory: () => {
+            this.#show('releases');
+          },
+          onBack: home,
+        });
+      case 'releases':
+        return releasesScreen(t, {
+          title: t.t('releases.title'),
+          intro: [],
+          releases: CHANGELOG,
+          actions: [
+            {
+              label: t.t('menu.back'),
+              id: 'back',
+              onClick: () => {
+                this.#show('help');
+              },
+            },
+          ],
+        });
+      case 'whatsNew':
+        return releasesScreen(t, {
+          title: t.t('whatsNew.title'),
+          intro: [t.t('whatsNew.intro', { version: APP_VERSION })],
+          releases: this.#whatsNew,
+          actions: [{ label: t.t('whatsNew.continue'), id: 'continue', onClick: home }],
+        });
+      case 'update': {
+        const update = this.#update;
+        if (!update) return null;
+        const newer = this.#newerRelease();
+        return releasesScreen(t, {
+          title: t.t('update.title'),
+          intro: [
+            newer
+              ? t.t('update.intro', { current: APP_VERSION, latest: newer.version })
+              : t.t('update.introUnknown'),
+            t.t('update.note'),
+          ],
+          releases: newer ? releasesBetween(newer.changelog, APP_VERSION, newer.version) : [],
+          actions: [
+            { label: t.t('update.later'), id: 'later', onClick: home },
+            {
+              label: t.t('update.now'),
+              id: 'update',
+              onClick: () => {
+                // Nouveautés déjà présentées : pas de « Quoi de neuf » après le rechargement.
+                if (newer) this.#store.setSeenVersion(newer.version);
+                update.apply();
+              },
+            },
+          ],
+        });
+      }
     }
   }
 }

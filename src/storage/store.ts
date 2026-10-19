@@ -1,5 +1,5 @@
 /**
- * Stockage local (localStorage) : réglages, records, dernier pseudo.
+ * Stockage local (localStorage) : réglages, records, dernier pseudo, dernière version vue.
  * Une seule clé versionnée ; lecture tolérante (données absentes, corrompues
  * ou anciennes → valeurs par défaut) ; si le stockage est indisponible
  * (navigation privée, quota), le jeu fonctionne en mémoire.
@@ -7,6 +7,7 @@
  */
 import { DEFAULT_SETTINGS, sanitizeSettings, type Settings } from '../config/settings.ts';
 import type { PresetId } from '../config/tuning.ts';
+import { isVersion } from '../release/version.ts';
 import { readLegacyCookies } from './legacy-cookies.ts';
 
 export const STORAGE_KEY = 'totem:v1';
@@ -18,6 +19,8 @@ export const PREVIOUS_STORAGE_KEYS: readonly string[] = ['jcolumns:v1'];
 export const STORAGE_VERSION = 1;
 export const MAX_HIGH_SCORES = 10;
 export const MAX_NAME_LENGTH = 12;
+/** Version des données enregistrées avant le suivi des versions (sans `seenVersion`). */
+export const UNVERSIONED_RELEASE = '1.0.0';
 
 /** Sous-ensemble de l'API Storage (injectable pour les tests). */
 export type StorageLike = Pick<Storage, 'getItem' | 'setItem'>;
@@ -49,6 +52,8 @@ export interface SavedData {
   readonly lastName: string;
   /** Les cookies de l'ancienne version ont déjà été examinés. */
   readonly legacyImported: boolean;
+  /** Dernière version du jeu présentée au joueur (« Quoi de neuf ») ; `null` : première visite. */
+  readonly seenVersion: string | null;
 }
 
 const EMPTY_DATA: SavedData = {
@@ -57,6 +62,7 @@ const EMPTY_DATA: SavedData = {
   highScores: [],
   lastName: '',
   legacyImported: false,
+  seenVersion: null,
 };
 
 export function normalizeName(name: string): string {
@@ -109,6 +115,12 @@ export function sanitizeData(raw: unknown): SavedData {
     highScores,
     lastName: typeof r['lastName'] === 'string' ? normalizeName(r['lastName']) : '',
     legacyImported: r['legacyImported'] === true,
+    // Données antérieures au suivi des versions : le joueur a connu la 1.0.0.
+    seenVersion: !('seenVersion' in r)
+      ? UNVERSIONED_RELEASE
+      : isVersion(r['seenVersion'])
+        ? r['seenVersion']
+        : null,
   };
 }
 
@@ -149,6 +161,15 @@ export class Store {
 
   get lastName(): string {
     return this.#data.lastName;
+  }
+
+  get seenVersion(): string | null {
+    return this.#data.seenVersion;
+  }
+
+  setSeenVersion(version: string): void {
+    this.#data = { ...this.#data, seenVersion: version };
+    this.#write();
   }
 
   saveSettings(settings: Settings): void {

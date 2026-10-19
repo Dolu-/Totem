@@ -2,6 +2,8 @@ name: Déploiement
 
 # Déploiement manuel de dist/ vers https://totem.dolu.fr par FTPS.
 # Par défaut : essai à blanc (liste ce qui serait envoyé ou supprimé, sans rien modifier).
+# La version de package.json doit être publiable (X.Y.Z, en tête du journal src/release/changelog.ts,
+# tag vX.Y.Z absent ou déjà sur ce commit) ; après un vrai déploiement, le tag vX.Y.Z est posé.
 
 on:
   workflow_dispatch:
@@ -12,7 +14,7 @@ on:
         default: true
 
 permissions:
-  contents: read
+  contents: write # pose du tag vX.Y.Z
 
 concurrency:
   group: deploiement
@@ -32,6 +34,37 @@ jobs:
           node-version: 24
           cache: npm
 
+      - name: Contrôle de la version
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Version « $VERSION » non publiable : X.Y.Z attendu"
+            exit 1
+          fi
+          # Lecture avec quelques essais (erreurs d'authentification passagères de l'API GitHub).
+          TAGGED=""
+          for i in 1 2 3; do
+            if OUT=$(gh api "repos/$GITHUB_REPOSITORY/commits/v$VERSION" --jq .sha 2>&1); then
+              TAGGED=$OUT; break
+            elif grep -q "HTTP 404\|HTTP 422" <<<"$OUT"; then
+              break
+            fi
+            sleep $((i * 5))
+          done
+          if [ -z "$TAGGED" ]; then
+            echo "tag=new" >> "$GITHUB_OUTPUT"
+          elif [ "$TAGGED" = "$GITHUB_SHA" ]; then
+            echo "::notice::v$VERSION déjà publiée sur ce commit : redéploiement"
+            echo "tag=existing" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error::v$VERSION est déjà publiée sur un autre commit ($TAGGED) : monter la version et compléter le journal"
+            exit 1
+          fi
+
       - name: Installation des dépendances
         run: npm ci
 
@@ -49,6 +82,12 @@ jobs:
           fi
           test -f dist/index.html
           test -f dist/sw.js
+          test -f dist/version.json
+          # version.json doit toujours venir du réseau : jamais dans le précache.
+          if grep -q version.json dist/sw.js; then
+            echo "::error::version.json est précaché par le service worker"
+            exit 1
+          fi
 
       - name: Installation de lftp
         run: sudo apt-get update -qq && sudo apt-get install -y -qq lftp
@@ -99,3 +138,23 @@ jobs:
         run: |
           curl -fsS -o /dev/null -w "index : %{http_code}\n" https://totem.dolu.fr/
           curl -fsS -o /dev/null -w "sw.js : %{http_code}\n" https://totem.dolu.fr/sw.js
+          curl -fsS https://totem.dolu.fr/version.json | node -e "
+            const v = JSON.parse(require('fs').readFileSync(0, 'utf8')).version;
+            if (v !== '${{ steps.version.outputs.version }}') { console.error('version.json en ligne : ' + v); process.exit(1); }
+            console.log('version.json : ' + v);"
+
+      - name: Tag de la version
+        if: ${{ !inputs.dry_run && steps.version.outputs.tag == 'new' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          # Essais répétés : l'API GitHub renvoie parfois un 401 passager sur les écritures.
+          for i in 1 2 3 4 5; do
+            if gh api "repos/$GITHUB_REPOSITORY/git/refs" -f "ref=refs/tags/v$VERSION" -f "sha=$GITHUB_SHA" >/dev/null; then
+              echo "::notice::Tag v$VERSION posé sur $GITHUB_SHA"
+              exit 0
+            fi
+            sleep $((i * 10))
+          done
+          echo "::warning::Tag v$VERSION non posé : le créer à la main (git tag v$VERSION $GITHUB_SHA && git push origin v$VERSION)"

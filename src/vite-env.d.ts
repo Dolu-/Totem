@@ -8,3 +8,6 @@ interface ImportMetaEnv {
 interface ImportMeta {
   readonly env: ImportMetaEnv;
 }
+
+/** Version du jeu (`package.json`), injectée par Vite (`define`). */
+declare const __APP_VERSION__: string;
