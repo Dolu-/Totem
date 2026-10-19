@@ -1,0 +1,99 @@
+name: Déploiement
+
+# Déploiement manuel de dist/ vers https://totem.dolu.fr par FTPS.
+# Par défaut : essai à blanc (liste ce qui serait envoyé ou supprimé, sans rien modifier).
+
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Essai à blanc (aucune modification sur le serveur)'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploiement
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Installation des dépendances
+        run: npm ci
+
+      - name: Contrôles (lint, formats, types, tests)
+        run: npm run check
+
+      - name: Build de production
+        run: npm run build
+
+      - name: Contrôle du build (pas de crochets de test, fichiers attendus)
+        run: |
+          if grep -rq __totem dist/; then
+            echo "::error::Les crochets de test (__totem) sont présents dans dist/"
+            exit 1
+          fi
+          test -f dist/index.html
+          test -f dist/sw.js
+
+      - name: Installation de lftp
+        run: sudo apt-get update -qq && sudo apt-get install -y -qq lftp
+
+      - name: Déploiement FTPS
+        env:
+          FTP_HOST: ${{ secrets.FTP_HOST }}
+          FTP_USER: ${{ secrets.FTP_USER }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          # FTPS explicite obligatoire, certificat vérifié.
+          # .well-known (renouvellement AutoSSL), cgi-bin et .htaccess ne sont jamais supprimés.
+          # Les ressources partent d'abord ; index.html et sw.js en dernier, pour qu'aucun
+          # visiteur ne reçoive une page qui référence des fichiers pas encore arrivés.
+          MIRROR="mirror --reverse --delete --no-perms --parallel=2 --verbose"
+          MIRROR="$MIRROR --exclude-glob .well-known/ --exclude-glob cgi-bin/ --exclude-glob .htaccess"
+          MIRROR="$MIRROR --exclude-glob .ftpquota --exclude-glob index.html --exclude-glob sw.js"
+
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "::notice::Essai à blanc : rien n'est modifié sur le serveur"
+            MIRROR="$MIRROR --dry-run"
+            FINAL="echo '(essai à blanc) envoi de index.html et sw.js ignoré'"
+          else
+            FINAL="put dist/index.html -o index.html; put dist/sw.js -o sw.js"
+          fi
+
+          lftp -u "$FTP_USER,$FTP_PASSWORD" -p 21 "ftp://$FTP_HOST" <<EOF
+          set cmd:fail-exit yes
+          set ftp:ssl-force yes
+          set ftp:ssl-auth TLS
+          set ftp:ssl-protect-data yes
+          set ssl:verify-certificate yes
+          set net:max-retries 3
+          set net:timeout 20
+          echo "--- Contenu actuel de la racine du compte ---"
+          cls -l
+          echo "--- Synchronisation ---"
+          $MIRROR dist/ ./
+          $FINAL
+          bye
+          EOF
+
+      - name: Vérification du site en ligne
+        if: ${{ !inputs.dry_run }}
+        run: |
+          curl -fsS -o /dev/null -w "index : %{http_code}\n" https://totem.dolu.fr/
+          curl -fsS -o /dev/null -w "sw.js : %{http_code}\n" https://totem.dolu.fr/sw.js
